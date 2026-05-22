@@ -417,6 +417,10 @@ export function AttendanceCalendar({ records: propRecords }: AttendanceCalendarP
                 const isWoff = isWeekend(cell.date);
                 const { workingMs, breakMs, grossMs, record } = getDayDurations(dateStr);
 
+                const todayStart = new Date();
+                todayStart.setHours(0, 0, 0, 0);
+                const isFutureDay = cell.date.getTime() > todayStart.getTime();
+
                 return (
                   <div
                     key={idx}
@@ -433,19 +437,21 @@ export function AttendanceCalendar({ records: propRecords }: AttendanceCalendarP
                         ? 'border-primary bg-primary/5 hover:bg-primary/10 ring-1 ring-primary/20'
                         : isWoff && workingMs === 0
                         ? 'border-border/10 bg-muted/20 hover:bg-muted/30 text-muted-foreground'
+                        : isFutureDay
+                        ? 'border-border/10 bg-card hover:bg-muted/5 opacity-60 text-muted-foreground'
                         : 'border-border/40 bg-card hover:border-primary/40 hover:bg-muted/10'
                     }`}
                   >
                     {/* Header: Date and Status Indicator */}
                     <div className="flex items-center justify-between">
-                      <span className={`text-xs font-semibold ${isToday ? 'text-primary' : ''}`}>
+                      <span className={`text-xs font-semibold ${isToday ? 'text-primary' : ''} ${isFutureDay ? 'text-muted-foreground/60' : ''}`}>
                         {format(cell.date, 'd')}
                       </span>
                       {record?.clockIn && renderStatusDot(record.attendanceStatus, isWoff && workingMs === 0)}
                       {isWoff && workingMs === 0 && !cell.isPlaceholder && (
                         <span className="text-[8px] bg-zinc-800 text-zinc-400 px-1 py-0.5 rounded font-mono hidden sm:inline-block">W.OFF</span>
                       )}
-                      {!isWoff && !record?.clockIn && !cell.isPlaceholder && !isToday && (
+                      {!isWoff && !record?.clockIn && !cell.isPlaceholder && !isToday && !isFutureDay && (
                         <span className="text-[8px] bg-rose-950/40 text-rose-400 px-1 py-0.5 rounded font-mono hidden sm:inline-block">ABSENT</span>
                       )}
                     </div>
@@ -459,7 +465,7 @@ export function AttendanceCalendar({ records: propRecords }: AttendanceCalendarP
                           </span>
                           {renderDetailedTimeline(record, 'h-1.5')}
                         </div>
-                      ) : !isWoff && !cell.isPlaceholder && !isToday ? (
+                      ) : !isWoff && !cell.isPlaceholder && !isToday && !isFutureDay ? (
                         <span className="text-[10px] text-rose-500 font-semibold hidden sm:inline-block">Absent</span>
                       ) : isWoff && !cell.isPlaceholder && workingMs === 0 ? (
                         <span className="text-[10px] text-zinc-500 hidden sm:inline-block">Weekly off</span>
@@ -483,6 +489,10 @@ export function AttendanceCalendar({ records: propRecords }: AttendanceCalendarP
               const isWoff = isWeekend(day);
               const { workingMs, breakMs, grossMs, record } = getDayDurations(dateStr);
 
+              const todayStart = new Date();
+              todayStart.setHours(0, 0, 0, 0);
+              const isFutureDay = day.getTime() > todayStart.getTime();
+
               return (
                 <div
                   key={idx}
@@ -495,6 +505,8 @@ export function AttendanceCalendar({ records: propRecords }: AttendanceCalendarP
                       ? 'border-primary bg-primary/5 hover:bg-primary/10 ring-1 ring-primary/20'
                       : isWoff && workingMs === 0
                       ? 'border-border/10 bg-muted/20 hover:bg-muted/30 text-muted-foreground'
+                      : isFutureDay
+                      ? 'border-border/10 bg-card hover:bg-muted/5 opacity-60 text-muted-foreground'
                       : 'border-border/40 bg-card hover:border-primary/40 hover:bg-muted/10'
                   }`}
                 >
@@ -502,7 +514,7 @@ export function AttendanceCalendar({ records: propRecords }: AttendanceCalendarP
                     <div className="flex justify-between items-start">
                       <div>
                         <div className="text-xs font-semibold text-muted-foreground">{format(day, 'EEE')}</div>
-                        <div className={`text-base font-bold ${isToday ? 'text-primary' : ''}`}>{format(day, 'dd MMM')}</div>
+                        <div className={`text-base font-bold ${isToday ? 'text-primary' : ''} ${isFutureDay ? 'text-muted-foreground/60' : ''}`}>{format(day, 'dd MMM')}</div>
                       </div>
                       {record?.clockIn && renderStatusDot(record.attendanceStatus, isWoff && workingMs === 0)}
                     </div>
@@ -510,7 +522,7 @@ export function AttendanceCalendar({ records: propRecords }: AttendanceCalendarP
                     {isWoff && workingMs === 0 && (
                       <Badge variant="outline" className="text-[8px] px-1.5 py-0 h-4 bg-zinc-800 text-zinc-400 border-none rounded">W.OFF</Badge>
                     )}
-                    {!isWoff && !record?.clockIn && !isToday && (
+                    {!isWoff && !record?.clockIn && !isToday && !isFutureDay && (
                       <Badge variant="outline" className="text-[8px] px-1.5 py-0 h-4 bg-rose-950/40 text-rose-400 border-none rounded">ABSENT</Badge>
                     )}
                   </div>
@@ -547,6 +559,10 @@ export function AttendanceCalendar({ records: propRecords }: AttendanceCalendarP
           const isToday = isSameDay(selectedDate, new Date());
           const isWoff = isWeekend(selectedDate);
           const { workingMs, breakMs, grossMs, record } = getDayDurations(dateStr);
+
+          const todayStart = new Date();
+          todayStart.setHours(0, 0, 0, 0);
+          const isFutureDay = selectedDate.getTime() > todayStart.getTime();
 
           const events: { type: 'work' | 'break', start: string, end?: string }[] = [];
           if (record?.breaks && record.breaks.length > 0) {
@@ -598,8 +614,11 @@ export function AttendanceCalendar({ records: propRecords }: AttendanceCalendarP
                     {isWoff && workingMs === 0 && (
                       <Badge className="bg-zinc-800 text-zinc-400 border-none">Weekly Off</Badge>
                     )}
-                    {!isWoff && !record?.clockIn && (
+                    {!isWoff && !record?.clockIn && !isFutureDay && (
                       <Badge className="bg-rose-950/40 text-rose-400 border-none">Absent</Badge>
+                    )}
+                    {!isWoff && !record?.clockIn && isFutureDay && (
+                      <Badge className="bg-zinc-800/60 text-zinc-400 border-none">Upcoming</Badge>
                     )}
                   </div>
 
