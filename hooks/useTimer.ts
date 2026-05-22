@@ -1,6 +1,4 @@
-"use client";
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { TimerState, TaskStatus } from '../types';
 import { differenceInMilliseconds, parseISO } from 'date-fns';
 import { db } from '../database/db';
@@ -33,6 +31,7 @@ export function useTimer() {
   // Lazy initializer — reads localStorage on the very first render (no race condition)
   const [state, setState] = useState<TimerState>(readTimerStorage);
   const [tick, setTick] = useState(0); // 1-second ticker
+  const isStoppingRef = useRef(false);
 
   // ─── Persist to localStorage whenever state changes ──────────────────────
   useEffect(() => {
@@ -104,26 +103,32 @@ export function useTimer() {
 
   /** Stops the timer, saves to Dexie, returns the saved record */
   const stopTimer = async (attendanceId: number) => {
-    if (!state.startTime) return null;
-    const endTime = new Date().toISOString();
-    const effectiveEnd = state.pausedAt ?? endTime;
-    const totalMs =
-      differenceInMilliseconds(parseISO(effectiveEnd), parseISO(state.startTime)) -
-      state.totalPausedDuration;
+    if (!state.startTime || isStoppingRef.current) return null;
+    isStoppingRef.current = true;
 
-    const record = {
-      attendanceId,
-      project: state.project,
-      description: state.description,
-      startTime: state.startTime,
-      endTime: effectiveEnd,
-      totalHours: msToHours(Math.max(0, totalMs)),
-      status: 'Completed' as TaskStatus,
-    };
+    try {
+      const endTime = new Date().toISOString();
+      const effectiveEnd = state.pausedAt ?? endTime;
+      const totalMs =
+        differenceInMilliseconds(parseISO(effectiveEnd), parseISO(state.startTime)) -
+        state.totalPausedDuration;
 
-    await db.tasks.add({ ...record, date: getTodayDateString() } as any);
-    setState(defaultState);
-    return record;
+      const record = {
+        attendanceId,
+        project: state.project,
+        description: state.description,
+        startTime: state.startTime,
+        endTime: effectiveEnd,
+        totalHours: msToHours(Math.max(0, totalMs)),
+        status: 'Completed' as TaskStatus,
+      };
+
+      await db.tasks.add({ ...record, date: getTodayDateString() } as any);
+      setState(defaultState);
+      return record;
+    } finally {
+      isStoppingRef.current = false;
+    }
   };
 
   return {
