@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { Edit2, Plus, Trash2, Clock } from 'lucide-react';
+import { Edit2, Plus, Trash2, Clock, Briefcase, Coffee, CalendarRange, ArrowRight } from 'lucide-react';
 import { useAttendanceContext } from '../contexts/AttendanceContext';
 import { db } from '../database/db';
 import { toast } from 'sonner';
@@ -302,47 +302,60 @@ export function EditAttendanceDialog() {
       <DialogTrigger className="h-7 w-7 inline-flex items-center justify-center rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer border border-border/20">
         <Edit2 className="h-3.5 w-3.5" />
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[480px] max-h-[85vh] overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-xl">
-        <DialogHeader>
-          <DialogTitle className="text-base font-bold tracking-tight text-foreground flex items-center gap-2">
-            <Clock className="h-4.5 w-4.5 text-primary" /> Correct Today&apos;s Logs
+      <DialogContent className="sm:max-w-[480px] max-h-[85vh] overflow-y-auto rounded-xl border border-border bg-card p-6 shadow-2xl shadow-neutral-950/20">
+        <DialogHeader className="space-y-1">
+          <DialogTitle className="text-sm font-semibold tracking-tight text-foreground flex items-center gap-2">
+            <CalendarRange className="h-4 w-4 text-muted-foreground" /> Adjust Daily Logs
           </DialogTitle>
+          <p className="text-xs text-muted-foreground font-normal">
+            Modify, add, or remove chronological work and break logs for today.
+          </p>
         </DialogHeader>
 
         {/* Existing Logs List */}
-        <div className="space-y-3 py-2">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 block">
-            Today&apos;s Chronological Logs
-          </span>
+        <div className="space-y-2.5 py-2">
+          <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60 select-none pb-1">
+            Active Segments
+          </div>
           
           {segments.length === 0 ? (
-            <div className="text-center py-6 border border-dashed border-border/60 rounded-xl bg-muted/5">
-              <Clock className="h-7 w-7 mx-auto text-muted-foreground/30 mb-2" />
+            <div className="text-center py-8 border border-dashed border-border/40 rounded-lg bg-muted/10">
+              <Clock className="h-6 w-6 mx-auto text-muted-foreground/30 mb-2" />
               <p className="text-xs text-muted-foreground font-medium">No logs recorded for today yet.</p>
-              <p className="text-[10px] text-muted-foreground/60 mt-0.5">Use the panel below to add a missing segment.</p>
+              <p className="text-[10px] text-muted-foreground/60 mt-0.5">Use the section below to add a missing segment.</p>
             </div>
           ) : (
-            <div className="space-y-2.5 max-h-[260px] overflow-y-auto pr-1">
+            <div className="space-y-1.5 max-h-[260px] overflow-y-auto pr-1">
               {segments.map((seg) => (
                 <div 
                   key={seg.id} 
-                  className="flex items-center gap-2.5 bg-muted/15 hover:bg-muted/25 p-2.5 rounded-xl border border-border/40 transition-all text-xs group"
+                  className="flex items-center gap-3 py-1.5 px-2 bg-muted/10 hover:bg-muted/30 rounded-lg border border-border/20 hover:border-border/40 transition-all text-xs group"
                 >
-                  {/* Visual Indicator Indicator */}
-                  <div className={`h-2 w-2 rounded-full shrink-0 ${seg.type === 'work' ? 'bg-primary shadow-[0_0_6px_rgba(99,102,241,0.4)]' : 'bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.4)]'}`} />
+                  {/* Icon Indicator instead of emoji */}
+                  <div className="shrink-0">
+                    {seg.type === 'work' ? (
+                      <div className="flex items-center justify-center h-6 w-6 rounded-md bg-primary/10 text-primary">
+                        <Briefcase className="h-3.5 w-3.5" />
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center h-6 w-6 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                        <Coffee className="h-3.5 w-3.5" />
+                      </div>
+                    )}
+                  </div>
 
-                  {/* Dropdown Type Selector */}
+                  {/* Clean Dropdown Type Selector */}
                   <select
                     value={seg.type}
                     onChange={(e) => handleSegmentChange(seg.id, 'type', e.target.value as 'work' | 'break')}
-                    className="bg-background border border-input rounded-lg px-2 py-1 text-xs font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary h-8 cursor-pointer shadow-sm hover:bg-muted/40 transition-all w-24 shrink-0"
+                    className="bg-background border border-border/50 rounded-md px-2 py-1 text-xs font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary h-8 cursor-pointer shadow-sm hover:bg-muted/40 transition-all w-24 shrink-0"
                   >
-                    <option value="work" className="bg-popover text-foreground">💼 Work</option>
-                    <option value="break" className="bg-popover text-foreground">☕ Break</option>
+                    <option value="work">Work</option>
+                    <option value="break">Break</option>
                   </select>
 
-                  {/* Start input wrapper */}
-                  <div className="flex items-center bg-background border border-input rounded-lg px-2 py-0.5 shadow-sm h-8 w-24 shrink-0 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all">
+                  {/* Start Input */}
+                  <div className="flex items-center bg-background border border-border/50 rounded-md px-2 shadow-sm h-8 w-24 shrink-0 focus-within:ring-1 focus-within:ring-primary/30 focus-within:border-primary transition-all">
                     <Input
                       value={seg.start}
                       onChange={(e) => handleSegmentChange(seg.id, 'start', e.target.value)}
@@ -351,10 +364,10 @@ export function EditAttendanceDialog() {
                     />
                   </div>
 
-                  <span className="text-muted-foreground/60 font-semibold text-[10px] uppercase tracking-wider shrink-0 px-0.5">to</span>
+                  <ArrowRight className="h-3 w-3 text-muted-foreground/30 shrink-0" />
 
-                  {/* End input wrapper */}
-                  <div className="flex items-center bg-background border border-input rounded-lg px-2 py-0.5 shadow-sm h-8 w-24 shrink-0 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all">
+                  {/* End Input */}
+                  <div className="flex items-center bg-background border border-border/50 rounded-md px-2 shadow-sm h-8 w-24 shrink-0 focus-within:ring-1 focus-within:ring-primary/30 focus-within:border-primary transition-all">
                     <Input
                       value={seg.end}
                       onChange={(e) => handleSegmentChange(seg.id, 'end', e.target.value)}
@@ -363,12 +376,12 @@ export function EditAttendanceDialog() {
                     />
                   </div>
 
-                  {/* Delete button */}
+                  {/* Sleek Delete button that reveals on hover */}
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => handleDeleteSegment(seg.id)}
-                    className="h-8 w-8 text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 rounded-lg ml-auto shrink-0 transition-all opacity-80 hover:opacity-100"
+                    className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md ml-auto shrink-0 transition-all opacity-0 group-hover:opacity-100 focus:opacity-100"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
@@ -378,28 +391,30 @@ export function EditAttendanceDialog() {
           )}
         </div>
 
-        {/* Add Missing Log Form */}
-        <div className="border-t border-border/50 pt-4 mt-2 space-y-3">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 flex items-center gap-1">
-            <Plus className="h-4 w-4 text-primary" /> Add Missing Log Segment
-          </span>
+        {/* Streamlined Add Missing Log Form (Horizontal Inline Row) */}
+        <div className="border-t border-border/30 pt-3 space-y-2">
+          <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60 select-none">
+            Add Log Segment
+          </div>
 
-          <div className="grid grid-cols-3 gap-3 bg-muted/10 p-4 rounded-xl border border-border/40 shadow-sm">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Type</label>
+          <div className="flex items-end gap-3 p-3 bg-muted/20 rounded-lg border border-border/30">
+            {/* Type selector */}
+            <div className="flex flex-col gap-1 w-24 shrink-0">
+              <span className="text-[9px] font-semibold text-muted-foreground/75 uppercase tracking-wider select-none">Type</span>
               <select
                 value={newType}
                 onChange={(e) => setNewType(e.target.value as 'work' | 'break')}
-                className="bg-background border border-input rounded-lg px-2.5 py-1 text-xs font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary h-9 cursor-pointer shadow-sm hover:bg-muted/40 transition-all"
+                className="bg-background border border-border/50 rounded-md px-2 py-1 text-xs font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary h-8 cursor-pointer shadow-sm hover:bg-muted/40 transition-all w-full"
               >
-                <option value="break" className="bg-popover text-foreground">☕ Break</option>
-                <option value="work" className="bg-popover text-foreground">💼 Work</option>
+                <option value="work">Work</option>
+                <option value="break">Break</option>
               </select>
             </div>
 
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Start (HH:MM:SS)</label>
-              <div className="flex items-center bg-background border border-input rounded-lg px-2.5 py-0.5 shadow-sm h-9 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all">
+            {/* Start input */}
+            <div className="flex flex-col gap-1 w-24 shrink-0">
+              <span className="text-[9px] font-semibold text-muted-foreground/75 uppercase tracking-wider select-none">Start Time</span>
+              <div className="flex items-center bg-background border border-border/50 rounded-md px-2 shadow-sm h-8 focus-within:ring-1 focus-within:ring-primary/30 focus-within:border-primary transition-all">
                 <Input
                   value={newStart}
                   onChange={(e) => setNewStart(e.target.value)}
@@ -409,9 +424,14 @@ export function EditAttendanceDialog() {
               </div>
             </div>
 
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">End (HH:MM:SS)</label>
-              <div className="flex items-center bg-background border border-input rounded-lg px-2.5 py-0.5 shadow-sm h-9 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all">
+            <div className="pb-2.5 shrink-0">
+              <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/30" />
+            </div>
+
+            {/* End input */}
+            <div className="flex flex-col gap-1 w-24 shrink-0">
+              <span className="text-[9px] font-semibold text-muted-foreground/75 uppercase tracking-wider select-none">End Time</span>
+              <div className="flex items-center bg-background border border-border/50 rounded-md px-2 shadow-sm h-8 focus-within:ring-1 focus-within:ring-primary/30 focus-within:border-primary transition-all">
                 <Input
                   value={newEnd}
                   onChange={(e) => setNewEnd(e.target.value)}
@@ -421,28 +441,29 @@ export function EditAttendanceDialog() {
               </div>
             </div>
 
+            {/* Compact Plus Button */}
             <Button 
               onClick={handleAddSegment} 
               size="sm" 
-              className="col-span-3 mt-2 h-9 text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm shadow-primary/20 rounded-lg transition-all cursor-pointer"
+              className="h-8 ml-auto text-xs font-semibold px-3 bg-foreground hover:bg-foreground/90 text-background rounded-md transition-all cursor-pointer shadow-sm flex items-center gap-1 shrink-0"
             >
-              Add Segment
+              <Plus className="h-3.5 w-3.5" /> Add
             </Button>
           </div>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex justify-end gap-2 border-t border-border/50 pt-4 mt-2">
+        <div className="flex justify-end gap-2 border-t border-border/30 pt-3 mt-1">
           <Button 
             variant="outline" 
             onClick={() => setOpen(false)} 
-            className="h-9 text-xs font-semibold px-4 border border-input bg-background hover:bg-muted rounded-lg transition-all cursor-pointer"
+            className="h-8.5 text-xs font-medium px-4 border border-border/60 bg-transparent hover:bg-muted text-muted-foreground hover:text-foreground rounded-md transition-all cursor-pointer"
           >
             Cancel
           </Button>
           <Button 
             onClick={handleSave} 
-            className="h-9 text-xs font-semibold px-4 bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm shadow-primary/20 rounded-lg transition-all cursor-pointer"
+            className="h-8.5 text-xs font-semibold px-4 bg-primary hover:bg-primary/95 text-primary-foreground shadow-sm shadow-primary/10 rounded-md transition-all cursor-pointer"
           >
             Save & Sync Logs
           </Button>
