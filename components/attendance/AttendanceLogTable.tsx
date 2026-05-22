@@ -84,13 +84,13 @@ export function AttendanceLogTable({ records }: AttendanceLogTableProps) {
         // Work segment before this break
         const workDuration = Math.max(0, breakStartMs - currentMs);
         if (workDuration > 0) {
-          segments.push(<div key={`w-${i}`} className="h-full bg-primary" style={{ width: `${(workDuration / totalTimelineMs) * 100}%` }} />);
+          segments.push(<div key={`w-${i}`} className="h-full bg-primary shrink-0" style={{ width: `${(workDuration / totalTimelineMs) * 100}%` }} />);
         }
 
         // Break segment
         const breakDuration = Math.max(0, breakEndMs - breakStartMs);
         if (breakDuration > 0) {
-          segments.push(<div key={`b-${i}`} className="h-full bg-amber-500/80" style={{ width: `${(breakDuration / totalTimelineMs) * 100}%` }} />);
+          segments.push(<div key={`b-${i}`} className="h-full bg-amber-500/80 shrink-0" style={{ width: `${(breakDuration / totalTimelineMs) * 100}%` }} />);
         }
 
         currentMs = breakEndMs;
@@ -99,12 +99,12 @@ export function AttendanceLogTable({ records }: AttendanceLogTableProps) {
       // Final work segment after the last break
       const finalWorkDuration = Math.max(0, endMs - currentMs);
       if (finalWorkDuration > 0) {
-        segments.push(<div key="w-final" className="h-full bg-primary" style={{ width: `${(finalWorkDuration / totalTimelineMs) * 100}%` }} />);
+        segments.push(<div key="w-final" className="h-full bg-primary shrink-0" style={{ width: `${(finalWorkDuration / totalTimelineMs) * 100}%` }} />);
       }
 
       return (
         <div className="h-2.5 w-80 bg-muted/30 rounded-full flex overflow-hidden">
-          <div className="flex h-full w-full" style={{ width: `${fillPct}%` }}>
+          <div className="flex h-full" style={{ width: `${fillPct}%` }}>
             {segments}
           </div>
         </div>
@@ -117,9 +117,9 @@ export function AttendanceLogTable({ records }: AttendanceLogTableProps) {
     
     return (
       <div className="h-2.5 w-80 bg-muted/30 rounded-full flex overflow-hidden">
-        <div className="flex h-full w-full" style={{ width: `${fillPct}%` }}>
-          <div className="h-full bg-primary" style={{ width: `${workPct}%` }} />
-          {breakPct > 0 && <div className="h-full bg-amber-500/80" style={{ width: `${breakPct}%` }} /> }
+        <div className="flex h-full" style={{ width: `${fillPct}%` }}>
+          <div className="h-full bg-primary shrink-0" style={{ width: `${workPct}%` }} />
+          {breakPct > 0 && <div className="h-full bg-amber-500/80 shrink-0" style={{ width: `${breakPct}%` }} /> }
         </div>
       </div>
     );

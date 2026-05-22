@@ -41,19 +41,34 @@ export default function AttendancePage() {
           dbRec.breakUsed = Math.floor(calc.breakUsedMs / 60000);
           dbRec.breaks = attState.breakHistory;
           dbRec.clockIn = attState.clockInTime || dbRec.clockIn;
+          dbRec.clockOut = undefined;
         }
         timeline.push(dbRec);
       } else {
-        timeline.push({
-          id: -i, // Fake ID
-          date: dateStr,
-          clockIn: '',
-          clockOut: '',
-          totalHours: 0,
-          breakUsed: 0,
-          overtime: 0,
-          attendanceStatus: 'Absent'
-        });
+        if (i === 0 && attState.isClocked && calc) {
+          timeline.push({
+            id: 0,
+            date: dateStr,
+            clockIn: attState.clockInTime || new Date().toISOString(),
+            clockOut: '',
+            totalHours: msToHours(calc.workingMs),
+            breakUsed: Math.floor(calc.breakUsedMs / 60000),
+            overtime: 0,
+            attendanceStatus: 'Present',
+            breaks: attState.breakHistory
+          });
+        } else {
+          timeline.push({
+            id: -i, // Fake ID
+            date: dateStr,
+            clockIn: '',
+            clockOut: '',
+            totalHours: 0,
+            breakUsed: 0,
+            overtime: 0,
+            attendanceStatus: 'Absent'
+          });
+        }
       }
     }
     return timeline;

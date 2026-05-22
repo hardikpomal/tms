@@ -47,12 +47,12 @@ export function AttendanceCalendar({ records: propRecords }: AttendanceCalendarP
 
   // Keep live time ticking for active today's calculations
   useEffect(() => {
-    const hasActiveSession = propRecords.some(r => r.clockIn && !r.clockOut);
+    const hasActiveSession = attState.isClocked || propRecords.some(r => r.clockIn && !r.clockOut);
     if (!hasActiveSession) return;
 
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
-  }, [propRecords]);
+  }, [propRecords, attState.isClocked]);
 
   // Fetch full history from Dexie so we can show older months perfectly
   const dbRecords = useLiveQuery(() => db.attendance.toArray(), []);
@@ -80,6 +80,8 @@ export function AttendanceCalendar({ records: propRecords }: AttendanceCalendarP
         todayRec.clockIn = attState.clockInTime || todayRec.clockIn;
         todayRec.breaks = attState.breakHistory;
         todayRec.clockOut = undefined;
+        todayRec.totalHours = calc.workingMs / 3600000;
+        todayRec.breakUsed = Math.floor(calc.breakUsedMs / 60000);
       }
       map.set(todayStr, todayRec);
     } else if (attState.isClocked) {
@@ -87,8 +89,8 @@ export function AttendanceCalendar({ records: propRecords }: AttendanceCalendarP
       map.set(todayStr, {
         date: todayStr,
         clockIn: attState.clockInTime || new Date().toISOString(),
-        totalHours: 0,
-        breakUsed: 0,
+        totalHours: calc ? (calc.workingMs / 3600000) : 0,
+        breakUsed: calc ? Math.floor(calc.breakUsedMs / 60000) : 0,
         overtime: 0,
         attendanceStatus: 'Present',
         breaks: attState.breakHistory
@@ -225,18 +227,95 @@ export function AttendanceCalendar({ records: propRecords }: AttendanceCalendarP
     }
   };
 
-  // Render visual segment timeline in Month cell or Week card
-  const renderMiniTimeline = (workingMs: number, breakMs: number, grossMs: number) => {
+  // Render visual segment timeline in Month cell, Week card, or Day Summary
+  const renderDetailedTimeline = (record: AttendanceRecord | undefined, heightClass = 'h-1.5') => {
+    if (!record) return null;
+
+    let workingMs = 0;
+    let breakMs = 0;
+    let grossMs = 0;
+
+    if (record.clockIn) {
+      const clockInMs = new Date(record.clockIn).getTime();
+      const clockOutMs = record.clockOut ? new Date(record.clockOut).getTime() : now;
+      const totalInTimeMs = Math.max(0, clockOutMs - clockInMs);
+
+      if (record.breaks && record.breaks.length > 0) {
+        record.breaks.forEach(b => {
+          const bStart = new Date(b.start).getTime();
+          const bEnd = b.end ? new Date(b.end).getTime() : now;
+          breakMs += Math.max(0, bEnd - bStart);
+        });
+      } else {
+        breakMs = record.breakUsed * 60000;
+      }
+
+      workingMs = Math.max(0, totalInTimeMs - breakMs);
+      grossMs = totalInTimeMs;
+    } else {
+      workingMs = record.totalHours * 3600000;
+      breakMs = record.breakUsed * 60000;
+      grossMs = workingMs + breakMs;
+    }
+
     if (grossMs === 0) return null;
+    
+    // Max width represents 9 hours (gross). 
+    // 9 hours in ms = 9 * 3600 * 1000 = 32,400,000 ms
     const fillPct = Math.min(100, (grossMs / 32400000) * 100);
+
+    // If we have detailed break history (Schema v3+)
+    if (record.breaks && record.breaks.length > 0) {
+      const clockInMs = new Date(record.clockIn).getTime();
+      const endMs = record.clockOut ? new Date(record.clockOut).getTime() : now;
+      const totalTimelineMs = endMs - clockInMs;
+      
+      const segments: React.ReactNode[] = [];
+      let currentMs = clockInMs;
+
+      record.breaks.forEach((b, i) => {
+        const breakStartMs = new Date(b.start).getTime();
+        const breakEndMs = b.end ? new Date(b.end).getTime() : now;
+        
+        // Work segment before this break
+        const workDuration = Math.max(0, breakStartMs - currentMs);
+        if (workDuration > 0) {
+          segments.push(<div key={`w-${i}`} className="h-full bg-primary shrink-0" style={{ width: `${(workDuration / totalTimelineMs) * 100}%` }} />);
+        }
+
+        // Break segment
+        const breakDuration = Math.max(0, breakEndMs - breakStartMs);
+        if (breakDuration > 0) {
+          segments.push(<div key={`b-${i}`} className="h-full bg-amber-500/80 shrink-0" style={{ width: `${(breakDuration / totalTimelineMs) * 100}%` }} />);
+        }
+
+        currentMs = breakEndMs;
+      });
+
+      // Final work segment after the last break
+      const finalWorkDuration = Math.max(0, endMs - currentMs);
+      if (finalWorkDuration > 0) {
+        segments.push(<div key="w-final" className="h-full bg-primary shrink-0" style={{ width: `${(finalWorkDuration / totalTimelineMs) * 100}%` }} />);
+      }
+
+      return (
+        <div className={`${heightClass} w-full bg-muted/30 rounded-full overflow-hidden flex mt-2`}>
+          <div className="flex h-full" style={{ width: `${fillPct}%` }}>
+            {segments}
+          </div>
+        </div>
+      );
+    }
+
+    // Fallback for older records without detailed break history
     const breakPct = (breakMs / grossMs) * 100;
     const workPct = 100 - breakPct;
-
+    
     return (
-      <div className="h-1.5 w-full bg-muted/30 rounded-full overflow-hidden flex mt-2">
-        <div className="flex h-full w-full" style={{ width: `${fillPct}%` }}>
-          <div className="h-full bg-primary" style={{ width: `${workPct}%` }} />
-          {breakPct > 0 && <div className="h-full bg-amber-500/80" style={{ width: `${breakPct}%` }} />}
+      <div className={`${heightClass} w-full bg-muted/30 rounded-full overflow-hidden flex mt-2`}>
+        <div className="flex h-full" style={{ width: `${fillPct}%` }}>
+          <div className="h-full bg-primary shrink-0" style={{ width: `${workPct}%` }} />
+          {breakPct > 0 && <div className="h-full bg-amber-500/80 shrink-0" style={{ width: `${breakPct}%` }} />}
         </div>
       </div>
     );
@@ -378,7 +457,7 @@ export function AttendanceCalendar({ records: propRecords }: AttendanceCalendarP
                           <span className="text-[10px] sm:text-[11px] font-bold text-foreground hidden sm:block font-mono truncate">
                             {formatMsToHm(workingMs)}
                           </span>
-                          {renderMiniTimeline(workingMs, breakMs, grossMs)}
+                          {renderDetailedTimeline(record, 'h-1.5')}
                         </div>
                       ) : !isWoff && !cell.isPlaceholder && !isToday ? (
                         <span className="text-[10px] text-rose-500 font-semibold hidden sm:inline-block">Absent</span>
@@ -442,7 +521,7 @@ export function AttendanceCalendar({ records: propRecords }: AttendanceCalendarP
                         <div className="text-[13px] font-bold font-mono">
                           {formatMsToHms(workingMs)}
                         </div>
-                        {renderMiniTimeline(workingMs, breakMs, grossMs)}
+                        {renderDetailedTimeline(record, 'h-1.5')}
                         <div className="flex gap-2 text-[9px] text-muted-foreground font-mono">
                           <span className="flex items-center gap-0.5"><Coffee className="h-2.5 w-2.5 text-amber-500/80" /> {Math.round(breakMs / 60000)}m</span>
                           <span className="flex items-center gap-0.5"><Clock className="h-2.5 w-2.5 text-primary/60" /> {Math.round(grossMs / 60000)}m</span>
@@ -539,7 +618,7 @@ export function AttendanceCalendar({ records: propRecords }: AttendanceCalendarP
                     </div>
                   </div>
 
-                  {workingMs > 0 && renderMiniTimeline(workingMs, breakMs, grossMs)}
+                  {workingMs > 0 && renderDetailedTimeline(record, 'h-2.5')}
                 </div>
 
                 <div className="text-xs text-muted-foreground leading-relaxed p-1">
