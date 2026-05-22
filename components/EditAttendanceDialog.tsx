@@ -348,18 +348,18 @@ export function EditAttendanceDialog() {
                   <select
                     value={seg.type}
                     onChange={(e) => handleSegmentChange(seg.id, 'type', e.target.value as 'work' | 'break')}
-                    className="bg-background border border-border/50 rounded-md px-1.5 py-1 text-xs font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary h-8 cursor-pointer shadow-sm hover:bg-muted/40 transition-all w-20 shrink-0"
+                    className="bg-background border border-border/50 rounded-md px-1.5 py-1 text-xs font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary h-8 cursor-pointer hover:bg-muted/40 transition-all w-20 shrink-0"
                   >
                     <option value="work">Work</option>
                     <option value="break">Break</option>
                   </select>
 
                   {/* Start Input */}
-                  <div className="flex flex-1 items-center bg-background border border-border/50 rounded-md px-1.5 shadow-sm h-8 w-20 shrink-0 focus-within:ring-1 focus-within:ring-primary/30 focus-within:border-primary transition-all">
+                  <div className="flex flex-1 items-center bg-background border border-border/50 rounded-md px-1.5 h-8 w-20 shrink-0 focus-within:ring-1 focus-within:ring-primary/30 focus-within:border-primary transition-all">
                     <Input
                       value={seg.start}
                       onChange={(e) => handleSegmentChange(seg.id, 'start', e.target.value)}
-                      className="h-full border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-center font-mono text-xs w-full p-0 bg-transparent text-foreground"
+                      className="h-full border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-center font-mono text-xs w-full p-0 bg-transparent dark:bg-transparent text-foreground shadow-none border-none dark:border-none focus-visible:dark:bg-transparent"
                       placeholder="HH:MM:SS"
                     />
                   </div>
@@ -367,11 +367,11 @@ export function EditAttendanceDialog() {
                   <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/30 shrink-0" />
 
                   {/* End Input */}
-                  <div className="flex flex-1 items-center bg-background border border-border/50 rounded-md px-1.5 shadow-sm h-8 w-20 shrink-0 focus-within:ring-1 focus-within:ring-primary/30 focus-within:border-primary transition-all">
+                  <div className="flex flex-1 items-center bg-background border border-border/50 rounded-md px-1.5 h-8 w-20 shrink-0 focus-within:ring-1 focus-within:ring-primary/30 focus-within:border-primary transition-all">
                     <Input
                       value={seg.end}
                       onChange={(e) => handleSegmentChange(seg.id, 'end', e.target.value)}
-                      className="h-full border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-center font-mono text-xs w-full p-0 bg-transparent text-foreground"
+                      className="h-full border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-center font-mono text-xs w-full p-0 bg-transparent dark:bg-transparent text-foreground shadow-none border-none dark:border-none focus-visible:dark:bg-transparent"
                       placeholder="HH:MM:SS"
                     />
                   </div>
@@ -404,7 +404,7 @@ export function EditAttendanceDialog() {
               <select
                 value={newType}
                 onChange={(e) => setNewType(e.target.value as 'work' | 'break')}
-                className="bg-background border border-border/50 rounded-md px-1.5 py-1 text-xs font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary h-8 cursor-pointer shadow-sm hover:bg-muted/40 transition-all w-full"
+                className="bg-background border border-border/50 rounded-md px-1.5 py-1 text-xs font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary h-8 cursor-pointer hover:bg-muted/40 transition-all w-full"
               >
                 <option value="work">Work</option>
                 <option value="break">Break</option>
@@ -414,12 +414,12 @@ export function EditAttendanceDialog() {
             {/* Start input */}
             <div className="flex flex-col flex-1 gap-1">
               <span className="text-[9px] font-semibold text-muted-foreground/75 uppercase tracking-wider select-none">Start Time</span>
-              <div className="flex items-center bg-background border border-border/50 rounded-md px-1.5 shadow-sm h-8 focus-within:ring-1 focus-within:ring-primary/30 focus-within:border-primary transition-all">
+              <div className="flex items-center bg-background border border-border/50 rounded-md px-1.5 h-8 focus-within:ring-1 focus-within:ring-primary/30 focus-within:border-primary transition-all">
                 <Input
                   value={newStart}
                   onChange={(e) => setNewStart(e.target.value)}
                   placeholder="13:00:00"
-                  className="h-full border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-center font-mono text-xs w-full p-0 bg-transparent text-foreground"
+                  className="h-full border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-center font-mono text-xs w-full p-0 bg-transparent dark:bg-transparent text-foreground shadow-none border-none dark:border-none focus-visible:dark:bg-transparent"
                 />
               </div>
             </div>
@@ -431,12 +431,12 @@ export function EditAttendanceDialog() {
             {/* End input */}
             <div className="flex flex-col gap-1 flex-1">
               <span className="text-[9px] font-semibold text-muted-foreground/75 uppercase tracking-wider select-none">End Time</span>
-              <div className="flex items-center bg-background border border-border/50 rounded-md px-1.5 shadow-sm h-8 focus-within:ring-1 focus-within:ring-primary/30 focus-within:border-primary transition-all">
+              <div className="flex items-center bg-background border border-border/50 rounded-md px-1.5 h-8 focus-within:ring-1 focus-within:ring-primary/30 focus-within:border-primary transition-all">
                 <Input
                   value={newEnd}
                   onChange={(e) => setNewEnd(e.target.value)}
                   placeholder="13:20:00"
-                  className="h-full border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-center font-mono text-xs w-full p-0 bg-transparent text-foreground"
+                  className="h-full border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-center font-mono text-xs w-full p-0 bg-transparent dark:bg-transparent text-foreground shadow-none border-none dark:border-none focus-visible:dark:bg-transparent"
                 />
               </div>
             </div>
