@@ -9,6 +9,9 @@ import { Badge } from './ui/badge';
 import { Clock, Coffee, TrendingUp, Timer, AlarmClock } from 'lucide-react';
 import { addMilliseconds, format } from 'date-fns';
 import { EditAttendanceDialog } from './EditAttendanceDialog';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../database/db';
+import { getTodayDateString } from '../utils/time';
 
 const statusColors: Record<string, string> = {
   'Full Day': 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400',
@@ -19,8 +22,6 @@ const statusColors: Record<string, string> = {
   'Overtime': 'bg-purple-500/10 text-purple-600 border-purple-500/20 dark:text-purple-400',
   'Absent': 'bg-muted text-muted-foreground border-border',
 };
-
-
 
 function ProgressBar({ value, max, color }: { value: number; max: number; color: string }) {
   const pct = Math.min(100, Math.round((value / max) * 100));
@@ -39,31 +40,59 @@ function ProgressBar({ value, max, color }: { value: number; max: number; color:
 export function TodayStatusCard() {
   const { state, calc } = useAttendanceContext();
 
-  if (!state.isClocked && !state.clockInTime) {
+  const todayRecord = useLiveQuery(() =>
+    db.attendance.where('date').equals(getTodayDateString()).first()
+  );
+
+  const isClockedOut = !state.isClocked && todayRecord;
+
+  if (!state.isClocked && !state.clockInTime && !todayRecord) {
     // Empty / pre-clocked state
     return (
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        className="rounded-2xl border border-dashed border-border/70 bg-card p-6 text-center"
+        className="rounded-2xl border border-border/50 bg-card shadow-sm overflow-hidden"
       >
-        <Clock className="mx-auto h-8 w-8 text-muted-foreground/40 mb-2" />
-        <p className="text-sm text-muted-foreground">Clock in to start your work day</p>
+        {/* Header bar */}
+        <div className="flex items-center justify-between px-5 py-3 border-b border-border/40 bg-muted/20">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-sm">Today&apos;s Attendance</span>
+            <EditAttendanceDialog />
+          </div>
+          <Badge className="text-xs border bg-muted text-muted-foreground border-border" variant="outline">
+            Not Logged In
+          </Badge>
+        </div>
+        
+        <div className="p-6 text-center">
+          <Clock className="mx-auto h-8 w-8 text-muted-foreground/40 mb-2" />
+          <p className="text-sm text-muted-foreground">Clock in to start your work day</p>
+          <p className="text-xs text-muted-foreground/60 mt-1">Or click the edit pencil icon above to manually add logs.</p>
+        </div>
       </motion.div>
     );
   }
 
   // Day Ends At: Clock In + 8.5h work + actual Break Taken (pushes end time back dynamically)
-  const dayEndAt = state.clockInTime
-    ? format(addMilliseconds(new Date(state.clockInTime), FULL_DAY_MS + (calc?.breakUsedMs ?? 0)), 'hh:mm:ss a')
-    : '—';
+  const clockInTimeStr = isClockedOut ? todayRecord.clockIn : state.clockInTime;
+  const clockOutTimeStr = isClockedOut ? todayRecord.clockOut : undefined;
 
-  const statusLabel = calc?.status ?? 'Present';
-  const workingMs = calc?.workingMs ?? 0;
-  const remainingMs = calc?.remainingMs ?? FULL_DAY_MS;
-  const breakUsedMs = calc?.breakUsedMs ?? 0;
-  const breakRemainingMs = calc?.breakRemainingMs ?? MAX_BREAK_MS;
-  const overtimeMs = calc?.overtimeMs ?? 0;
+  const statusLabel = isClockedOut ? todayRecord.attendanceStatus : (calc?.status ?? 'Present');
+  const workingMs = isClockedOut ? (todayRecord.totalHours * 3600000) : (calc?.workingMs ?? 0);
+  const breakUsedMs = isClockedOut ? (todayRecord.breakUsed * 60000) : (calc?.breakUsedMs ?? 0);
+  const overtimeMs = isClockedOut ? (todayRecord.overtime * 3600000) : (calc?.overtimeMs ?? 0);
+
+  const totalInTimeMs = isClockedOut
+    ? (new Date(clockOutTimeStr || clockInTimeStr || '').getTime() - new Date(clockInTimeStr || '').getTime())
+    : (calc?.totalInTimeMs ?? 0);
+
+  const remainingMs = isClockedOut ? 0 : (calc?.remainingMs ?? FULL_DAY_MS);
+  const breakRemainingMs = isClockedOut ? Math.max(0, MAX_BREAK_MS - breakUsedMs) : (calc?.breakRemainingMs ?? MAX_BREAK_MS);
+
+  const dayEndAt = clockInTimeStr
+    ? format(addMilliseconds(new Date(clockInTimeStr), FULL_DAY_MS + breakUsedMs), 'hh:mm:ss a')
+    : '—';
 
   return (
     <motion.div
@@ -90,10 +119,10 @@ export function TodayStatusCard() {
       {/* Stats grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-px bg-border/30">
         {[
-          { label: 'Clock In', value: state.clockInTime ? formatTime(state.clockInTime) : '—', icon: LogInIcon },
+          { label: 'Clock In', value: clockInTimeStr ? formatTime(clockInTimeStr) : '—', icon: LogInIcon },
           { label: 'Day Ends At', value: dayEndAt, icon: AlarmClock, accent: remainingMs === 0 ? 'text-emerald-500' : undefined },
-          { label: 'Total In-Time', value: calc ? formatDuration(calc.totalInTimeMs) : '00:00:00', icon: Timer },
-          { label: 'Working Time', value: calc ? formatDuration(workingMs) : '—', icon: TrendingUp, accent: overtimeMs > 0 ? 'text-purple-500' : undefined },
+          { label: 'Total In-Time', value: formatDuration(totalInTimeMs), icon: Timer },
+          { label: 'Working Time', value: formatDuration(workingMs), icon: TrendingUp, accent: overtimeMs > 0 ? 'text-purple-500' : undefined },
           { label: 'Break Used', value: formatDuration(breakUsedMs), icon: Coffee, accent: breakRemainingMs === 0 ? 'text-red-500' : 'text-amber-500' },
           { label: 'Remaining', value: formatDuration(remainingMs), icon: Clock, accent: remainingMs === 0 ? 'text-emerald-500' : undefined },
         ].map(({ label, value, icon: Ic, accent }) => (

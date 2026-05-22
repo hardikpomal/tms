@@ -8,6 +8,7 @@ import { Edit2, Plus, Trash2, Clock, Coffee } from 'lucide-react';
 import { useAttendanceContext } from '../contexts/AttendanceContext';
 import { db } from '../database/db';
 import { toast } from 'sonner';
+import { getTodayDateString } from '../utils/time';
 
 interface LogSegment {
   id: string;
@@ -42,57 +43,82 @@ export function EditAttendanceDialog() {
     return d;
   };
 
-  const handleOpenChange = (isOpen: boolean) => {
-    setOpen(isOpen);
-    if (isOpen && state.clockInTime) {
-      const initialSegments: LogSegment[] = [];
-      const endMs = Date.now();
+  const buildSegments = (clockIn: string, clockOut: string | null | undefined, breaksList: { start: string; end?: string }[]) => {
+    const initialSegments: LogSegment[] = [];
+    const endMs = clockOut ? new Date(clockOut).getTime() : Date.now();
 
-      const sortedBreaks = [...(state.breakHistory || [])]
-        .filter(b => b.start)
-        .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+    const sortedBreaks = [...(breaksList || [])]
+      .filter(b => b.start)
+      .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
 
-      let currentMs = new Date(state.clockInTime).getTime();
-      let idCounter = 1;
+    let currentMs = new Date(clockIn).getTime();
+    let idCounter = 1;
 
-      sortedBreaks.forEach(b => {
-        const bStartMs = new Date(b.start).getTime();
-        const bEndMs = b.end ? new Date(b.end).getTime() : endMs;
+    sortedBreaks.forEach(b => {
+      const bStartMs = new Date(b.start).getTime();
+      const bEndMs = b.end ? new Date(b.end).getTime() : endMs;
 
-        // Add Work segment before this break
-        if (bStartMs > currentMs) {
-          initialSegments.push({
-            id: String(idCounter++),
-            type: 'work',
-            start: dateToTimeStr(new Date(currentMs).toISOString()),
-            end: dateToTimeStr(new Date(bStartMs).toISOString())
-          });
-        }
-
-        // Add Break segment
+      // Add Work segment before this break
+      if (bStartMs > currentMs) {
         initialSegments.push({
-          id: String(idCounter++),
-          type: 'break',
-          start: dateToTimeStr(b.start),
-          end: dateToTimeStr(new Date(bEndMs).toISOString())
-        });
-
-        currentMs = bEndMs;
-      });
-
-      // Add Final work segment
-      if (endMs > currentMs) {
-        initialSegments.push({
-          id: String(idCounter++),
+          id: `w-${idCounter++}`,
           type: 'work',
           start: dateToTimeStr(new Date(currentMs).toISOString()),
-          end: dateToTimeStr(new Date(endMs).toISOString())
+          end: dateToTimeStr(new Date(bStartMs).toISOString())
         });
       }
 
+      // Add Break segment
+      initialSegments.push({
+        id: `b-${idCounter++}`,
+        type: 'break',
+        start: dateToTimeStr(b.start),
+        end: dateToTimeStr(new Date(bEndMs).toISOString())
+      });
+
+      currentMs = bEndMs;
+    });
+
+    // Add Final work segment
+    if (endMs > currentMs) {
+      initialSegments.push({
+        id: `w-${idCounter++}`,
+        type: 'work',
+        start: dateToTimeStr(new Date(currentMs).toISOString()),
+        end: dateToTimeStr(new Date(endMs).toISOString())
+      });
+    }
+
+    return initialSegments;
+  };
+
+  const handleOpenChange = async (isOpen: boolean) => {
+    setOpen(isOpen);
+    if (!isOpen) return;
+
+    setNewStart('');
+    setNewEnd('');
+
+    // Fetch today's record from DB
+    const todayStr = getTodayDateString();
+    const todayRecord = await db.attendance.where('date').equals(todayStr).first();
+
+    if (todayRecord) {
+      const initialSegments = buildSegments(
+        todayRecord.clockIn,
+        todayRecord.clockOut,
+        todayRecord.breaks || []
+      );
       setSegments(initialSegments);
-      setNewStart('');
-      setNewEnd('');
+    } else if (state.clockInTime) {
+      const initialSegments = buildSegments(
+        state.clockInTime,
+        null,
+        state.breakHistory || []
+      );
+      setSegments(initialSegments);
+    } else {
+      setSegments([]);
     }
   };
 
@@ -151,10 +177,17 @@ export function EditAttendanceDialog() {
   };
 
   const handleSave = async () => {
-    if (!state.clockInTime || !state.attendanceId) return;
+    if (segments.length === 0) {
+      toast.error("You must have at least one log segment");
+      return;
+    }
 
     try {
-      const baseDate = new Date(state.clockInTime);
+      const todayStr = getTodayDateString();
+      const todayRecord = await db.attendance.where('date').equals(todayStr).first();
+
+      const baseDate = todayRecord ? new Date(todayRecord.clockIn) : new Date();
+
       const parsedSegments = segments.map(seg => {
         const startDate = timeToDate(seg.start, baseDate);
         const endDate = timeToDate(seg.end, baseDate);
@@ -173,15 +206,12 @@ export function EditAttendanceDialog() {
         };
       });
 
-      if (parsedSegments.length === 0) {
-        throw new Error("You must have at least one log segment");
-      }
-
       // Sort chronologically
       parsedSegments.sort((a, b) => a.start.getTime() - b.start.getTime());
 
       // Earliest start time is the new clockIn
       const newClockIn = parsedSegments[0].start;
+      const newClockOut = parsedSegments[parsedSegments.length - 1].end;
       
       // Calculate break history and total break ms
       const newBreakHistory: { start: string; end?: string }[] = [];
@@ -197,19 +227,11 @@ export function EditAttendanceDialog() {
         }
       });
 
-      // Update Local Storage
-      const raw = localStorage.getItem('tms_attendance_state');
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        parsed.clockInTime = newClockIn.toISOString();
-        parsed.totalBreakMs = newTotalBreakMs;
-        parsed.breakHistory = newBreakHistory;
-        localStorage.setItem('tms_attendance_state', JSON.stringify(parsed));
-      }
+      // If they are currently active (clocked in) today, keep them clocked in
+      const isCurrentlyClockedIn = !!(state.isClocked && state.attendanceId && !todayRecord?.clockOut);
 
-      // Calculate working hours to sync IndexedDB
-      const nowMs = Date.now();
-      const totalInTimeMs = Math.max(0, nowMs - newClockIn.getTime());
+      const endMsForWorkingCalc = isCurrentlyClockedIn ? Date.now() : newClockOut.getTime();
+      const totalInTimeMs = Math.max(0, endMsForWorkingCalc - newClockIn.getTime());
       const workingMs = Math.max(0, totalInTimeMs - newTotalBreakMs);
       const overtimeMs = workingMs > 8.5 * 3600000 ? workingMs - 8.5 * 3600000 : 0;
       
@@ -227,15 +249,44 @@ export function EditAttendanceDialog() {
 
       const newStatus = deriveStatus(workingMs, newClockIn.toISOString());
 
-      // Update IndexedDB record today
-      await db.attendance.update(state.attendanceId, {
-        clockIn: newClockIn.toISOString(),
-        breakUsed: Math.floor(newTotalBreakMs / 60000),
-        totalHours: workingMs / 3600000,
-        overtime: overtimeMs / 3600000,
-        attendanceStatus: newStatus,
-        breaks: newBreakHistory
-      });
+      let finalAttendanceId = state.attendanceId;
+
+      if (todayRecord) {
+        finalAttendanceId = todayRecord.id!;
+        await db.attendance.update(todayRecord.id!, {
+          clockIn: newClockIn.toISOString(),
+          clockOut: isCurrentlyClockedIn ? undefined : newClockOut.toISOString(),
+          breakUsed: Math.floor(newTotalBreakMs / 60000),
+          totalHours: workingMs / 3600000,
+          overtime: overtimeMs / 3600000,
+          attendanceStatus: newStatus,
+          breaks: newBreakHistory
+        });
+      } else {
+        const newId = await db.attendance.add({
+          date: todayStr,
+          clockIn: newClockIn.toISOString(),
+          clockOut: newClockOut.toISOString(),
+          breakUsed: Math.floor(newTotalBreakMs / 60000),
+          totalHours: workingMs / 3600000,
+          overtime: overtimeMs / 3600000,
+          attendanceStatus: newStatus,
+          breaks: newBreakHistory
+        });
+        finalAttendanceId = newId as number;
+      }
+
+      // Update Local Storage
+      const updatedState = {
+        attendanceId: finalAttendanceId,
+        clockInTime: newClockIn.toISOString(),
+        isClocked: isCurrentlyClockedIn,
+        onBreak: false,
+        breakStartTime: null,
+        totalBreakMs: newTotalBreakMs,
+        breakHistory: newBreakHistory
+      };
+      localStorage.setItem('tms_attendance_state', JSON.stringify(updatedState));
 
       toast.success('Attendance logs synchronized perfectly!');
       setOpen(false);
@@ -244,8 +295,6 @@ export function EditAttendanceDialog() {
       toast.error(err.message || 'Invalid times. Please use HH:MM:SS format');
     }
   };
-
-  if (!state.isClocked) return null;
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
