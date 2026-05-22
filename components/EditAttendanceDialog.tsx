@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { Edit2, Plus, Trash2, Clock, Coffee } from 'lucide-react';
+import { Edit2, Plus, Trash2, Clock } from 'lucide-react';
 import { useAttendanceContext } from '../contexts/AttendanceContext';
 import { db } from '../database/db';
 import { toast } from 'sonner';
@@ -291,8 +291,9 @@ export function EditAttendanceDialog() {
       toast.success('Attendance logs synchronized perfectly!');
       setOpen(false);
       window.location.reload();
-    } catch (err: any) {
-      toast.error(err.message || 'Invalid times. Please use HH:MM:SS format');
+    } catch (err) {
+      const error = err as Error;
+      toast.error(error.message || 'Invalid times. Please use HH:MM:SS format');
     }
   };
 
