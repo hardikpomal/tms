@@ -1,10 +1,7 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "../components/Providers";
 import { AppLayout } from "../components/AppLayout";
-
-const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Timesheet App",
@@ -18,7 +15,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} antialiased min-h-screen bg-background text-foreground transition-colors duration-300`}>
+      <body className="antialiased min-h-screen bg-background text-foreground transition-colors duration-300">
         <Providers>
           <AppLayout>{children}</AppLayout>
         </Providers>
