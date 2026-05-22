@@ -9,6 +9,7 @@ import { msToHours, formatDuration } from '../utils/rules';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from './ui/table';
+import { Card } from './ui/card';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -19,7 +20,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from './ui/dialog';
 import { format, parseISO } from 'date-fns';
-import { Search, Trash2, Pencil, ChevronLeft, ChevronRight, ArrowUpDown } from 'lucide-react';
+import { Search, Trash2, Pencil, ChevronLeft, ChevronRight, ArrowUpDown, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 
 const STATUS_COLORS: Record<TaskStatus, string> = {
@@ -49,6 +50,34 @@ export function TimesheetTable() {
       status: timerState.status,
     };
     return [liveTask, ...dbTasks];
+  }, [dbTasks, timerState, runningDuration]);
+
+  const todayProjectSummary = React.useMemo(() => {
+    const summary: Record<string, number> = {};
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    // Sum from persisted tasks that were started today
+    dbTasks.forEach((t) => {
+      const start = new Date(t.startTime);
+      if (start.getTime() >= todayStart.getTime()) {
+        summary[t.project] = (summary[t.project] || 0) + (t.totalHours * 3600000);
+      }
+    });
+
+    // Add active running timer if started today
+    if (timerState.startTime && runningDuration > 0) {
+      const start = new Date(timerState.startTime);
+      if (start.getTime() >= todayStart.getTime()) {
+        const project = timerState.project || 'Active Session';
+        summary[project] = (summary[project] || 0) + runningDuration;
+      }
+    }
+
+    return Object.entries(summary).map(([name, ms]) => ({
+      name,
+      ms,
+    })).sort((a, b) => b.ms - a.ms);
   }, [dbTasks, timerState, runningDuration]);
 
   const [search, setSearch] = useState('');
@@ -102,7 +131,49 @@ export function TimesheetTable() {
 
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-6">
+      {/* Today's Projects Breakdown Widget */}
+      {todayProjectSummary.length > 0 && (
+        <Card className="bg-card border-border/50 shadow-sm p-4 overflow-hidden">
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm font-semibold tracking-tight text-foreground">
+                <Clock className="h-4 w-4 text-primary" />
+                <span>Today&apos;s Time Allocation</span>
+              </div>
+              <span className="text-xs text-muted-foreground font-medium">
+                Total Today: {formatDuration(todayProjectSummary.reduce((acc, curr) => acc + curr.ms, 0))}
+              </span>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              {todayProjectSummary.map((project) => {
+                const totalTodayMs = todayProjectSummary.reduce((acc, curr) => acc + curr.ms, 0);
+                const pct = totalTodayMs > 0 ? (project.ms / totalTodayMs) * 100 : 0;
+                
+                return (
+                  <div key={project.name} className="flex flex-col gap-1.5 p-3 rounded-lg bg-muted/30 border border-border/30 hover:border-primary/20 transition-all hover:bg-muted/40">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-semibold text-foreground truncate max-w-[130px]" title={project.name}>
+                        {project.name}
+                      </span>
+                      <span className="font-mono text-muted-foreground tabular-nums font-semibold">
+                        {formatDuration(project.ms)}
+                      </span>
+                    </div>
+                    {/* Tiny visual progress bar */}
+                    <div className="w-full h-1 bg-secondary rounded-full overflow-hidden">
+                      <div className="h-full bg-primary rounded-full" style={{ width: `${pct}%` }} />
+                    </div>
+                    <span className="text-[9px] text-muted-foreground text-right">{pct.toFixed(0)}% of today&apos;s work</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </Card>
+      )}
+
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-3 justify-between">
         <h2 className="text-lg font-semibold tracking-tight">Timesheet Entries</h2>

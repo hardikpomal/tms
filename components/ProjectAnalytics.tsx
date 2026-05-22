@@ -17,13 +17,15 @@ export function ProjectAnalytics() {
   const projectStats = useMemo(() => {
     if (!tasks) return [];
     
-    const stats: Record<string, { totalMs: number; completedCount: number; thisWeekMs: number }> = {};
+    const stats: Record<string, { totalMs: number; completedCount: number; thisWeekMs: number; todayMs: number }> = {};
     const now = new Date();
     const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
 
     tasks.forEach(t => {
       if (!stats[t.project]) {
-        stats[t.project] = { totalMs: 0, completedCount: 0, thisWeekMs: 0 };
+        stats[t.project] = { totalMs: 0, completedCount: 0, thisWeekMs: 0, todayMs: 0 };
       }
       
       const durationMs = t.totalHours * 3600000;
@@ -36,15 +38,20 @@ export function ProjectAnalytics() {
       if (new Date(t.startTime) > oneWeekAgo) {
         stats[t.project].thisWeekMs += durationMs;
       }
+
+      if (new Date(t.startTime).getTime() >= todayStart.getTime()) {
+        stats[t.project].todayMs += durationMs;
+      }
     });
 
     // Add active timer time
     if (timer.state.project && timer.runningDuration > 0) {
       if (!stats[timer.state.project]) {
-        stats[timer.state.project] = { totalMs: 0, completedCount: 0, thisWeekMs: 0 };
+        stats[timer.state.project] = { totalMs: 0, completedCount: 0, thisWeekMs: 0, todayMs: 0 };
       }
       stats[timer.state.project].totalMs += timer.runningDuration;
       stats[timer.state.project].thisWeekMs += timer.runningDuration;
+      stats[timer.state.project].todayMs += timer.runningDuration;
     }
 
     return Object.entries(stats)
@@ -132,12 +139,21 @@ export function ProjectAnalytics() {
                   </p>
                 </div>
 
-                <div className="pt-2 border-t border-border/50 flex items-center justify-between text-sm">
-                  <span className="flex items-center gap-1.5 text-muted-foreground">
-                    <TrendingUp className="h-3.5 w-3.5" />
-                    This Week
-                  </span>
-                  <span className="font-medium">{formatDuration(project.thisWeekMs)}</span>
+                <div className="pt-2 border-t border-border/50 space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="flex items-center gap-1.5 text-muted-foreground">
+                      <Clock className="h-3.5 w-3.5" />
+                      Today
+                    </span>
+                    <span className="font-medium">{formatDuration(project.todayMs)}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="flex items-center gap-1.5 text-muted-foreground">
+                      <TrendingUp className="h-3.5 w-3.5" />
+                      This Week
+                    </span>
+                    <span className="font-medium">{formatDuration(project.thisWeekMs)}</span>
+                  </div>
                 </div>
 
               </CardContent>

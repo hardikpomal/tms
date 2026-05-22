@@ -32,8 +32,18 @@ export function DashboardCards() {
       if (isWithinInterval(d, monthI)) month += t.totalHours;
       if (t.status === 'Completed') completed++;
     });
+
+    // Incorporate the live running timer in real-time
+    if (timerState.startTime && runningDuration > 0) {
+      const runningHours = runningDuration / 3600000;
+      const d = parseISO(timerState.startTime);
+      if (isWithinInterval(d, todayI)) today += runningHours;
+      if (isWithinInterval(d, weekI)) week += runningHours;
+      if (isWithinInterval(d, monthI)) month += runningHours;
+    }
+
     return { today, week, month, completed };
-  }, [tasks]);
+  }, [tasks, timerState, runningDuration]);
 
   const cards = [
     {
