@@ -302,7 +302,7 @@ export function EditAttendanceDialog() {
       <DialogTrigger className="h-7 w-7 inline-flex items-center justify-center rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer border border-border/20">
         <Edit2 className="h-3.5 w-3.5" />
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[480px] max-h-[85vh] overflow-y-auto rounded-xl border border-border bg-card p-6 shadow-2xl shadow-neutral-950/20">
+      <DialogContent className="sm:max-w-[480px] max-h-[85vh] overflow-y-auto rounded-xl border border-border bg-card p-6 shadow-none">
         <DialogHeader className="space-y-1">
           <DialogTitle className="text-sm font-semibold tracking-tight text-foreground flex items-center gap-2">
             <CalendarRange className="h-4 w-4 text-muted-foreground" /> Adjust Daily Logs
@@ -355,7 +355,7 @@ export function EditAttendanceDialog() {
                   </select>
 
                   {/* Start Input */}
-                  <div className="flex items-center bg-background border border-border/50 rounded-md px-1.5 shadow-sm h-8 w-20 shrink-0 focus-within:ring-1 focus-within:ring-primary/30 focus-within:border-primary transition-all">
+                  <div className="flex flex-1 items-center bg-background border border-border/50 rounded-md px-1.5 shadow-sm h-8 w-20 shrink-0 focus-within:ring-1 focus-within:ring-primary/30 focus-within:border-primary transition-all">
                     <Input
                       value={seg.start}
                       onChange={(e) => handleSegmentChange(seg.id, 'start', e.target.value)}
@@ -367,7 +367,7 @@ export function EditAttendanceDialog() {
                   <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/30 shrink-0" />
 
                   {/* End Input */}
-                  <div className="flex items-center bg-background border border-border/50 rounded-md px-1.5 shadow-sm h-8 w-20 shrink-0 focus-within:ring-1 focus-within:ring-primary/30 focus-within:border-primary transition-all">
+                  <div className="flex flex-1 items-center bg-background border border-border/50 rounded-md px-1.5 shadow-sm h-8 w-20 shrink-0 focus-within:ring-1 focus-within:ring-primary/30 focus-within:border-primary transition-all">
                     <Input
                       value={seg.end}
                       onChange={(e) => handleSegmentChange(seg.id, 'end', e.target.value)}
@@ -412,7 +412,7 @@ export function EditAttendanceDialog() {
             </div>
 
             {/* Start input */}
-            <div className="flex flex-col gap-1 w-20 shrink-0">
+            <div className="flex flex-col flex-1 gap-1">
               <span className="text-[9px] font-semibold text-muted-foreground/75 uppercase tracking-wider select-none">Start Time</span>
               <div className="flex items-center bg-background border border-border/50 rounded-md px-1.5 shadow-sm h-8 focus-within:ring-1 focus-within:ring-primary/30 focus-within:border-primary transition-all">
                 <Input
@@ -429,7 +429,7 @@ export function EditAttendanceDialog() {
             </div>
 
             {/* End input */}
-            <div className="flex flex-col gap-1 w-20 shrink-0">
+            <div className="flex flex-col gap-1 flex-1">
               <span className="text-[9px] font-semibold text-muted-foreground/75 uppercase tracking-wider select-none">End Time</span>
               <div className="flex items-center bg-background border border-border/50 rounded-md px-1.5 shadow-sm h-8 focus-within:ring-1 focus-within:ring-primary/30 focus-within:border-primary transition-all">
                 <Input
