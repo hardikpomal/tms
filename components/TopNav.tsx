@@ -41,7 +41,12 @@ export function TopNav({
   const handleBreak = () => {
     if (state.onBreak) {
       endBreak();
-      toast.info('Break ended. Back to work!');
+      if (timer.state.startTime && !timer.state.isRunning && timer.state.pausedAt) {
+        timer.resumeTimer();
+        toast.info('Active task resumed. Back to work!');
+      } else {
+        toast.info('Break ended. Back to work!');
+      }
     } else {
       if (timer.state.isRunning) {
         timer.pauseTimer();
