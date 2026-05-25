@@ -8,6 +8,7 @@ import { TodayStatusCard } from '../components/TodayStatusCard';
 import { TimerWidget } from '../components/TimerWidget';
 import { DashboardCards } from '../components/DashboardCards';
 import { AnalyticsCharts } from '../components/AnalyticsCharts';
+import { InjectMissingData } from '../components/InjectData';
 
 const fadeUp = { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 } };
 
@@ -24,6 +25,8 @@ export default function DashboardPage() {
             {format(new Date(), 'EEEE, MMMM d, yyyy')}
           </p>
         </motion.header>
+        
+        <InjectMissingData />
 
         {/* ── Today Status Card ───────────────────────────────────────────── */}
         <motion.section {...fadeUp} transition={{ delay: 0.05 }}>
