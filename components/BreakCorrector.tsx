@@ -194,5 +194,84 @@ export function BreakCorrector() {
     applyCorrection();
   }, []);
 
+  useEffect(() => {
+    async function applyTaskCorrection() {
+      const taskCorrectionKey = 'tms_task_correction_20260522_v1';
+      if (localStorage.getItem(taskCorrectionKey) === 'applied') {
+        return;
+      }
+
+      console.log("[BreakCorrector] Checking for incorrect MenuSync task on May 22...");
+      let changesMade = false;
+
+      // 1. Adjust saved tasks in Dexie
+      const tasks = await db.tasks.toArray();
+      const targetTask = tasks.find(t => 
+        t.project === 'MenuSync' &&
+        t.description === 'Edge cases of Shift & Remittance' &&
+        t.startTime && t.startTime.startsWith('2026-05-22') &&
+        t.totalHours > 10
+      );
+
+      if (targetTask && targetTask.id) {
+        console.log("[BreakCorrector] Found target MenuSync task to correct:", targetTask);
+        const taskStart = new Date(targetTask.startTime);
+        const correctedEnd = new Date(taskStart);
+        // Set to May 22, 2026 at 08:20:32 PM local time
+        correctedEnd.setHours(20, 20, 32, 0);
+
+        const totalMs = correctedEnd.getTime() - taskStart.getTime();
+        const totalHours = msToHours(Math.max(0, totalMs));
+
+        await db.tasks.update(targetTask.id, {
+          endTime: correctedEnd.toISOString(),
+          totalHours: totalHours,
+          status: 'Completed'
+        });
+
+        console.log("[BreakCorrector] Task corrected successfully.");
+        changesMade = true;
+      }
+
+      // 2. Adjust active task timer in localStorage if it contains the stale task
+      const timerStateRaw = localStorage.getItem('tms_timer_state');
+      if (timerStateRaw) {
+        try {
+          const timerState = JSON.parse(timerStateRaw);
+          if (timerState.startTime && timerState.startTime.startsWith('2026-05-22')) {
+            console.log("[BreakCorrector] Clearing active task timer from May 22nd");
+            localStorage.setItem('tms_timer_state', JSON.stringify({
+              isRunning: false,
+              startTime: null,
+              project: '',
+              description: '',
+              status: 'In Progress',
+              pausedAt: null,
+              totalPausedDuration: 0,
+            }));
+            changesMade = true;
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
+      // Mark correction as applied
+      localStorage.setItem(taskCorrectionKey, 'applied');
+
+      // Show user-friendly toast and refresh state if changes were made
+      if (changesMade) {
+        toast.success("Timesheet corrected! The MenuSync task hours have been adjusted to 01:03:17.", {
+          duration: 6000,
+        });
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+      }
+    }
+
+    applyTaskCorrection();
+  }, []);
+
   return null;
 }

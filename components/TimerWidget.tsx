@@ -6,7 +6,6 @@ import { Play, Square, Pause, RotateCcw } from 'lucide-react';
 import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { Badge } from './ui/badge';
 import { useTimerContext } from '../contexts/TimerContext';
 import { useAttendanceContext } from '../contexts/AttendanceContext';
 import { formatDuration } from '../utils/rules';
@@ -30,7 +29,7 @@ export function TimerWidget({ attendanceId }: TimerWidgetProps) {
       toast.error('Please enter a project or task name.');
       return;
     }
-    startTimer(attendanceId);
+    startTimer();
     if (attendanceState.onBreak) endBreak();
     toast.success(`Tracking: ${state.project}`);
   };

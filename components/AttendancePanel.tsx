@@ -2,14 +2,13 @@
 
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LogIn, LogOut, Coffee, StopCircle } from 'lucide-react';
+import { LogIn, LogOut, Coffee } from 'lucide-react';
 import { Button } from './ui/button';
 import { useAttendanceContext } from '../contexts/AttendanceContext';
 import { useTimerContext } from '../contexts/TimerContext';
 import { formatDuration, formatHoursMinutes } from '../utils/rules';
 import { formatTime } from '../utils/time';
 import { toast } from 'sonner';
-import { Badge } from './ui/badge';
 
 export function AttendancePanel({ onClockIn }: { onClockIn?: () => void }) {
   const { state, calc, clockIn, clockOut, startBreak, endBreak } = useAttendanceContext();
@@ -23,6 +22,12 @@ export function AttendancePanel({ onClockIn }: { onClockIn?: () => void }) {
 
   const handleClockOut = async () => {
     if (!confirm('Are you sure you want to Clock Out for today?')) return;
+
+    // Auto-stop active task timer if running or paused before clocking out
+    if (timer.state.startTime && state.attendanceId) {
+      await timer.stopTimer(state.attendanceId);
+    }
+
     const result = await clockOut();
     if (result) {
       toast.success('Clocked out successfully!', {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { TimerState, TaskStatus } from '../types';
 import { differenceInMilliseconds, parseISO } from 'date-fns';
 import { db } from '../database/db';
@@ -48,6 +48,8 @@ export function useTimer() {
   // ─── Derived running duration (no setState in effect) ───────────────────
   let runningDuration = 0;
   if (state.startTime) {
+    // Reference tick to trigger re-renders and satisfy linter
+    void tick;
     if (state.isRunning && !state.pausedAt) {
       runningDuration = Math.max(
         0,
@@ -66,7 +68,7 @@ export function useTimer() {
     setState((prev) => ({ ...prev, [field]: value }));
   };
 
-  const startTimer = (attendanceId: number) => {
+  const startTimer = () => {
     if (!state.project.trim()) return false;
     setState((prev) => ({
       ...prev,
@@ -123,13 +125,17 @@ export function useTimer() {
         status: 'Completed' as TaskStatus,
       };
 
-      await db.tasks.add({ ...record, date: getTodayDateString() } as any);
+      await db.tasks.add({ ...record, date: getTodayDateString() });
       setState(defaultState);
       return record;
     } finally {
       isStoppingRef.current = false;
     }
   };
+
+  const resetTimer = useCallback(() => {
+    setState(defaultState);
+  }, []);
 
   return {
     state,
@@ -139,5 +145,6 @@ export function useTimer() {
     pauseTimer,
     resumeTimer,
     stopTimer,
+    resetTimer,
   };
 }

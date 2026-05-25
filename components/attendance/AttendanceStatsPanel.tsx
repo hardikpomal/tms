@@ -119,16 +119,19 @@ export function AttendanceStatsPanel() {
         </CardHeader>
         <CardContent className="p-4 flex-1 flex flex-col justify-between">
           <div className="flex gap-1.5 mb-4">
-            {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, i) => (
-              <div 
-                key={i} 
-                className={`h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-medium ${
-                  i === 3 ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'
-                }`}
-              >
-                {day}
-              </div>
-            ))}
+            {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, i) => {
+              const currentDayIndex = now.getDay() === 0 ? 6 : now.getDay() - 1;
+              return (
+                <div 
+                  key={i} 
+                  className={`h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-medium transition-all ${
+                    i === currentDayIndex ? 'bg-primary text-primary-foreground font-semibold shadow-sm' : 'text-muted-foreground hover:bg-muted'
+                  }`}
+                >
+                  {day}
+                </div>
+              );
+            })}
           </div>
           
           <div className="space-y-2">

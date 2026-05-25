@@ -30,6 +30,12 @@ export function TopNav({
 
   const handleClockOut = async () => {
     if (!confirm('Are you sure you want to Clock Out for today?')) return;
+
+    // Auto-stop active task timer if running or paused before clocking out
+    if (timer.state.startTime && state.attendanceId) {
+      await timer.stopTimer(state.attendanceId);
+    }
+
     const result = await clockOut();
     if (result) {
       toast.success('Clocked out successfully!', {

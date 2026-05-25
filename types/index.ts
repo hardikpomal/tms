@@ -45,6 +45,7 @@ export interface TaskRecord {
   endTime?: string;    // ISO
   totalHours: number;
   status: TaskStatus;
+  date?: string;       // YYYY-MM-DD
 }
 
 // Persisted across page reloads in localStorage
