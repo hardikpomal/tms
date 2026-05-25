@@ -13,7 +13,7 @@ export function InjectMissingData() {
     try {
       setLoading(true);
       const today = getTodayDateString(); // e.g. "2026-05-25"
-      let record = await db.attendance.where('date').equals(today).first();
+      const record = await db.attendance.where('date').equals(today).first();
 
       if (!record) {
         toast.error("No attendance record for today found. Please clock in first or create a record manually.");
@@ -34,7 +34,8 @@ export function InjectMissingData() {
       const createDate = (timeStr: string) => {
         // timeStr format: "10:53:48 AM"
         const [time, ampm] = timeStr.split(' ');
-        let [hours, minutes, seconds] = time.split(':').map(Number);
+        let [hours] = time.split(':').map(Number);
+        const [, minutes, seconds] = time.split(':').map(Number);
         if (ampm === 'PM' && hours < 12) hours += 12;
         if (ampm === 'AM' && hours === 12) hours = 0;
         
@@ -135,8 +136,8 @@ export function InjectMissingData() {
       ]);
 
       toast.success("Successfully injected missing data!");
-    } catch (e: any) {
-      toast.error(e.message || "Failed to inject data");
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Failed to inject data");
     } finally {
       setLoading(false);
     }
