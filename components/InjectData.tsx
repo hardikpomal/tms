@@ -71,21 +71,21 @@ export function InjectMissingData() {
         { start: b3Start, end: b3End },
       ];
       
-      let additionalBreakMs = 0;
+      let totalBreakMs = 0;
       for (const b of breaks) {
-        additionalBreakMs += new Date(b.end).getTime() - new Date(b.start).getTime();
+        totalBreakMs += new Date(b.end).getTime() - new Date(b.start).getTime();
       }
       
-      const additionalBreakMinutes = additionalBreakMs / 60000;
+      const totalBreakMinutes = totalBreakMs / 60000;
       
-      // Merge breaks
-      const existingBreaks = record.breaks || [];
-      const updatedBreaks = [...existingBreaks, ...breaks];
-      
+      // OVERWRITE breaks
       await db.attendance.update(attendanceId, {
-        breaks: updatedBreaks,
-        breakUsed: (record.breakUsed || 0) + additionalBreakMinutes
+        breaks: breaks,
+        breakUsed: totalBreakMinutes
       });
+
+      // Clear existing tasks for this attendance record
+      await db.tasks.where('attendanceId').equals(attendanceId).delete();
 
       // Insert tasks
       const getHours = (start: string, end: string) => {
